@@ -30,7 +30,7 @@ class RedisJournalSpec extends JournalSpec(
     } else {
       val host = config.getString("redis.host")
       val port = config.getInt("redis.port")
-      new RedisClient(host, port)
+      RedisClient(host, port)
     }
 
     // Clean up database to prevent data from previous tests interfering with current run

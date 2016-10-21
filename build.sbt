@@ -15,7 +15,7 @@ resolvers += Resolver.jcenterRepo
 libraryDependencies ++= Seq(
   "com.typesafe.akka"    %% "akka-contrib" % Version.akka,
   "com.github.etaty"     %% "rediscala" % Version.rediscala,
-  "com.typesafe.play"    %% "play-json" % Version.play,
+  "io.spray"             %% "spray-json" % Version.spray,
   "commons-codec"        %  "commons-codec"  % "1.9"
 )
 

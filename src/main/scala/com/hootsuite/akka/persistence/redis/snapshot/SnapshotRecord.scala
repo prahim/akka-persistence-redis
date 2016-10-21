@@ -1,9 +1,8 @@
 package com.hootsuite.akka.persistence.redis.snapshot
 
 import akka.util.ByteString
-import com.hootsuite.akka.persistence.redis.SerializationException
 import org.apache.commons.codec.binary.Base64
-import play.api.libs.json._
+import spray.json._
 import redis.ByteStringFormatter
 
 /**
@@ -13,36 +12,35 @@ import redis.ByteStringFormatter
 case class SnapshotRecord(sequenceNr: Long, timestamp: Long, snapshot: Array[Byte])
 
 object SnapshotRecord {
-  implicit val byteArrayWrites = new Writes[Array[Byte]] {
-    override def writes(ba: Array[Byte]): JsValue = {
+  import DefaultJsonProtocol.{jsonFormat3, LongJsonFormat}
+
+  implicit val byteArrayFormat = new JsonFormat[Array[Byte]] {
+    override def write(ba: Array[Byte]): JsValue = {
       JsString(Base64.encodeBase64String(ba))
     }
-  }
-
-  implicit val byteArrayReads = new Reads[Array[Byte]] {
-    override def reads(json: JsValue): JsResult[Array[Byte]] = json match {
+    override def read(json: JsValue): Array[Byte] = json match {
       case JsString(s) =>
         try {
-          JsSuccess(Base64.decodeBase64(s))
+          Base64.decodeBase64(s)
         } catch {
-          case _: Throwable => JsError("Cannot deserialize snapshot in SnapshotRecord")
+          case exp: Throwable => deserializationError("Cannot deserialize snapshot in SnapshotRecord", exp)
         }
-      case _ => JsError("Cannot find deserializable JsValue")
+      case _ => deserializationError("Cannot find deserializable JsValue")
     }
   }
 
-  implicit val fmt: Format[SnapshotRecord] = Json.format[SnapshotRecord]
+  implicit val fmt: JsonFormat[SnapshotRecord] = jsonFormat3(SnapshotRecord.apply)
 
   implicit val byteStringFormatter = new ByteStringFormatter[SnapshotRecord] {
     override def serialize(data: SnapshotRecord): ByteString = {
-      ByteString(Json.toJson(data).toString())
+      ByteString(data.toJson.compactPrint)
     }
 
     override def deserialize(bs: ByteString): SnapshotRecord = {
       try {
-        Json.parse(bs.utf8String).as[SnapshotRecord]
+        bs.utf8String.parseJson.convertTo[SnapshotRecord]
       } catch {
-        case e: Exception => throw SerializationException("Error deserializing SnapshotRecord.", e)
+        case e: Exception => deserializationError("Error deserializing SnapshotRecord.", e)
       }
     }
   }
