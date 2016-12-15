@@ -1,7 +1,7 @@
 package com.hootsuite.akka.persistence.redis.snapshot
 
 import akka.util.ByteString
-import org.apache.commons.codec.binary.Base64
+import org.apache.commons.codec.binary.Hex
 import spray.json._
 import redis.ByteStringFormatter
 
@@ -16,12 +16,12 @@ object SnapshotRecord {
 
   implicit val byteArrayFormat = new JsonFormat[Array[Byte]] {
     override def write(ba: Array[Byte]): JsValue = {
-      JsString(Base64.encodeBase64String(ba))
+      JsString(Hex.encodeHexString(ba).toUpperCase)
     }
     override def read(json: JsValue): Array[Byte] = json match {
       case JsString(s) =>
         try {
-          Base64.decodeBase64(s)
+          Hex.decodeHex(s.toCharArray)
         } catch {
           case exp: Throwable => deserializationError("Cannot deserialize snapshot in SnapshotRecord", exp)
         }
