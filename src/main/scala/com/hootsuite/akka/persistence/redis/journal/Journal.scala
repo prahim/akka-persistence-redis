@@ -1,7 +1,6 @@
 package com.hootsuite.akka.persistence.redis.journal
 
 import akka.util.ByteString
-import org.apache.commons.codec.binary.Hex
 import redis.ByteStringFormatter
 import spray.json._
 
@@ -16,12 +15,12 @@ object Journal {
 
   implicit val byteArrayFormat = new JsonFormat[Array[Byte]] {
     override def write(ba: Array[Byte]): JsValue = {
-      JsString(Hex.encodeHexString(ba).toUpperCase)
+      JsString(new String(ba))
     }
     override def read(json: JsValue): Array[Byte] = json match {
       case JsString(s) =>
         try {
-          Hex.decodeHex(s.toCharArray)
+          s.getBytes
         } catch {
           case exp: Throwable => deserializationError("Cannot deserialize persistentRepr in Journal", exp)
         }
