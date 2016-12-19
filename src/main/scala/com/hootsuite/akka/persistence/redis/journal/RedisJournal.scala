@@ -67,16 +67,14 @@ class RedisJournal extends AsyncWriteJournal with ActorLogging with DefaultRedis
   }
 
   private def asyncWriteOperation(transaction: TransactionBuilder, pr: PersistentRepr): Future[Unit] = {
-    import Journal._
+    import spray.json._
+    import JournalProtocol._
 
-    toBytes(pr) match {
-      case Success(serialized) =>
-        val journal = Journal(pr.sequenceNr, serialized, pr.deleted)
-        transaction.zadd(journalKey(pr.persistenceId), (pr.sequenceNr, journal)).zip(
-          transaction.set(highestSequenceNrKey(pr.persistenceId), pr.sequenceNr)
-        ).map(_ => ())
-      case Failure(e) => Future.failed(new scala.RuntimeException("writeMessages: failed to write PersistentRepr to redis"))
-    }
+    val journal = Journal(pr.sequenceNr, pr, pr.deleted).toJson
+    transaction.zadd(journalKey(pr.persistenceId), (pr.sequenceNr, journal)).zip(
+      transaction.set(highestSequenceNrKey(pr.persistenceId), pr.sequenceNr)
+    ).map(_ => ())
+
   }
 
   /**
